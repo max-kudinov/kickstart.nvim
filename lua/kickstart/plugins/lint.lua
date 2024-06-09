@@ -7,6 +7,19 @@ return {
       local lint = require 'lint'
       lint.linters_by_ft = {
         markdown = { 'markdownlint' },
+        systemverilog = { 'verilator' },
+        verilog = { 'veriloator ' },
+      }
+
+      local verilator = require('lint').linters.verilator
+      verilator.args = {
+        '--lint-only',
+        '-F',
+        vim.fs.find('verilator.f', {
+          upward = true,
+          stop = '/home',
+          type = 'file',
+        })[1],
       }
 
       -- To allow other plugins to add linters to require('lint').linters_by_ft,
