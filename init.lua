@@ -129,7 +129,7 @@ vim.opt.ignorecase = true
 vim.opt.smartcase = true
 
 -- Merge signcolumn and line number column
-vim.opt.signcolumn = 'number'
+vim.opt.signcolumn = 'yes'
 
 -- Decrease update time
 vim.opt.updatetime = 250
@@ -439,7 +439,20 @@ require('lazy').setup({
     'neovim/nvim-lspconfig',
     dependencies = {
       -- Automatically install LSPs and related tools to stdpath for Neovim
-      { 'williamboman/mason.nvim', config = true }, -- NOTE: Must be loaded before dependants
+      {
+        'williamboman/mason.nvim',
+        config = true,
+        opts = {
+          ui = {
+            border = "rounded",
+            icons = {
+              package_installed = "✓",
+              package_pending = "➜",
+              package_uninstalled = "✗",
+            },
+          }
+        }
+      }, -- NOTE: Must be loaded before dependants
       'williamboman/mason-lspconfig.nvim',
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
@@ -476,6 +489,17 @@ require('lazy').setup({
       --
       -- If you're wondering about lsp vs treesitter, you can check out the wonderfully
       -- and elegantly composed help section, `:help lsp-vs-treesitter`
+
+      require('lspconfig.ui.windows').default_options = {
+        border = "rounded"
+      }
+
+      -- Change diagnostic symbols
+      local signs = { Error = "", Warn = "", Hint = "", Info = "" }
+      for type, icon in pairs(signs) do
+        local hl = "DiagnosticSign" .. type
+        vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+      end
 
       --  This function gets run when an LSP attaches to a particular buffer.
       --    That is to say, every time a new file is opened that is associated with
@@ -658,42 +682,42 @@ require('lazy').setup({
     end,
   },
 
-  { -- Autoformat
-    'stevearc/conform.nvim',
-    lazy = false,
-    keys = {
-      {
-        '<leader>f',
-        function()
-          require('conform').format { async = true, lsp_fallback = true }
-        end,
-        mode = '',
-        desc = '[F]ormat buffer',
-      },
-    },
-    opts = {
-      notify_on_error = false,
-      format_on_save = function(bufnr)
-        -- Disable "format_on_save lsp_fallback" for languages that don't
-        -- have a well standardized coding style. You can add additional
-        -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true }
-        return {
-          timeout_ms = 500,
-          lsp_fallback = not disable_filetypes[vim.bo[bufnr].filetype],
-        }
-      end,
-      formatters_by_ft = {
-        lua = { 'stylua' },
-        -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
-        --
-        -- You can use a sub-list to tell conform to run *until* a formatter
-        -- is found.
-        -- javascript = { { "prettierd", "prettier" } },
-      },
-    },
-  },
+  -- { -- Autoformat
+  --   'stevearc/conform.nvim',
+  --   lazy = false,
+  --   keys = {
+  --     {
+  --       '<leader>f',
+  --       function()
+  --         require('conform').format { async = true, lsp_fallback = true }
+  --       end,
+  --       mode = '',
+  --       desc = '[F]ormat buffer',
+  --     },
+  --   },
+  --   opts = {
+  --     notify_on_error = false,
+  --     format_on_save = function(bufnr)
+  --       -- Disable "format_on_save lsp_fallback" for languages that don't
+  --       -- have a well standardized coding style. You can add additional
+  --       -- languages here or re-enable it for the disabled ones.
+  --       local disable_filetypes = { c = true, cpp = true }
+  --       return {
+  --         timeout_ms = 500,
+  --         lsp_fallback = not disable_filetypes[vim.bo[bufnr].filetype],
+  --       }
+  --     end,
+  --     formatters_by_ft = {
+  --       lua = { 'stylua' },
+  --       -- Conform can also run multiple formatters sequentially
+  --       -- python = { "isort", "black" },
+  --       --
+  --       -- You can use a sub-list to tell conform to run *until* a formatter
+  --       -- is found.
+  --       -- javascript = { { "prettierd", "prettier" } },
+  --     },
+  --   },
+  -- },
 
   { -- Autocompletion
     'hrsh7th/nvim-cmp',
@@ -737,13 +761,47 @@ require('lazy').setup({
       local luasnip = require 'luasnip'
       luasnip.config.setup {}
 
+      -- Icons for different kinds of stuff
+      local kind_icons = {
+        Text = "󰊄",
+        Method = "",
+        Function = "󰡱",
+        Constructor = "",
+        Field = "",
+        Variable = "󰫧",
+        Class = "",
+        Interface = "",
+        Module = "",
+        Property = "",
+        Unit = "",
+        Value = "",
+        Enum = "",
+        Keyword = "",
+        Snippet = "",
+        Color = "",
+        File = "",
+        Reference = "",
+        Folder = "",
+        EnumMember = "",
+        Constant = "",
+        Struct = "",
+        Event = "",
+        Operator = "",
+        TypeParameter = "",
+      }
+
+      -- No idea what this function does, but has something to do with Super-Tab
+      local has_words_before = function()
+        local line, col = unpack(vim.api.nvim_win_get_cursor(0))
+        return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
+      end
+
       cmp.setup {
         snippet = {
           expand = function(args)
             luasnip.lsp_expand(args.body)
           end,
         },
-        completion = { completeopt = 'menu,menuone,noinsert' },
 
         -- For an understanding of why these mappings were
         -- chosen, you will need to read `:help ins-completion`
@@ -762,12 +820,23 @@ require('lazy').setup({
           -- Accept ([y]es) the completion.
           --  This will auto-import if your LSP supports it.
           --  This will expand snippets if the LSP sent a snippet.
-          ['<C-y>'] = cmp.mapping.confirm { select = true },
+          -- ['<C-y>'] = cmp.mapping.confirm { select = true },
 
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
-          ['<CR>'] = cmp.mapping.confirm { select = true },
-          ['<Tab>'] = cmp.mapping.select_next_item(),
+          ['<CR>'] = cmp.mapping.confirm { select = false },
+
+          -- Super-Tab
+          ["<Tab>"] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_next_item()
+            elseif has_words_before() then
+              cmp.complete()
+            else
+              fallback()
+            end
+          end),
+
           ['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
           -- Manually trigger a completion from nvim-cmp.
@@ -797,10 +866,33 @@ require('lazy').setup({
           -- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
           --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
         },
+
         sources = {
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
+          { name = 'buffer' },
           { name = 'path' },
+        },
+
+        formatting = {
+          expandable_indicator = true,
+          fields = { "kind", "abbr", "menu" },
+          format = function(entry, vim_item)
+            -- Kind icons
+            vim_item.kind = string.format("%s", kind_icons[vim_item.kind])
+            vim_item.menu = ({
+              nvim_lsp = "LSP",
+              luasnip = "Snippet",
+              buffer = "Buffer",
+              path = "Path",
+            })[entry.source.name]
+            return vim_item
+          end,
+        },
+
+        window = {
+          completion = cmp.config.window.bordered(),
+          documentation = cmp.config.window.bordered(),
         },
       }
     end,
@@ -813,15 +905,29 @@ require('lazy').setup({
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
     'ellisonleao/gruvbox.nvim',
     priority = 1000, -- Make sure to load this before all the other start plugins.
+    config = true,
     init = function()
+      require('gruvbox').setup({
+        overrides = {
+          LspReferenceText = { bg = '#504945', bold = true },
+          LspReferenceRead = { bg = '#504945', bold = true },
+          LspReferenceWrite = { bg = '#504945', bold = true },
+          SignColumn = { bg = '#282828' },
+          GruvboxAquaSign = { bg = '#282828', fg = '#8ec07c' },
+          GruvboxRedSign = { bg = '#282828', fg = '#fb4934' },
+          GruvboxYellowSign = { bg = '#282828', fg = '#fabd2f' },
+          GruvboxBlueSign = { bg = '#282828', fg = '#83a598' },
+          FloatBorder = { fg = '#a89984' }
+        }
+      })
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'gruvbox'
-      vim.o.background = 'dark'
+      vim.cmd("colorscheme gruvbox")
 
       -- You can configure highlights by doing something like:
       vim.cmd.hi 'Comment gui=none'
+      vim.cmd.hi 'NormalFloat guibg=none'
     end,
   },
 
@@ -844,7 +950,7 @@ require('lazy').setup({
       -- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
-      require('mini.surround').setup()
+      -- require('mini.surround').setup()
 
       -- Simple and easy statusline.
       --  You could remove this setup call if you don't like it,
@@ -921,7 +1027,7 @@ require('lazy').setup({
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
   -- require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
+  require 'kickstart.plugins.indent_line',
   require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
@@ -957,3 +1063,21 @@ require('lazy').setup({
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+
+local _border = "rounded"
+
+vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(
+  vim.lsp.handlers.hover, {
+    border = _border
+  }
+)
+
+vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(
+  vim.lsp.handlers.signature_help, {
+    border = _border
+  }
+)
+
+vim.diagnostic.config{
+  float={border=_border}
+}
