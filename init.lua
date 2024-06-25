@@ -621,10 +621,12 @@ require('lazy').setup({
         bashls = {},
 
         verible = {
-          handlers = {
-            ['textDocument/publishDiagnostics'] = function() end,
+          cmd = {
+            "/home/mkudinov/.local/share/nvim/mason/bin/verible-verilog-ls",
+            "--ruleset=none"
           },
         },
+
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
