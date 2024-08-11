@@ -9,6 +9,7 @@ return {
         markdown = { 'markdownlint' },
         systemverilog = { 'verilator' },
         verilog = { 'verilator' },
+        python = { 'flake8' }
       }
 
       local verilator = require('lint').linters.verilator
