@@ -8,7 +8,7 @@ return {
       lint.linters_by_ft = {
         markdown = { 'markdownlint' },
         systemverilog = { 'verilator' },
-        verilog = { 'veriloator ' },
+        verilog = { 'verilator' },
       }
 
       local verilator = require('lint').linters.verilator
