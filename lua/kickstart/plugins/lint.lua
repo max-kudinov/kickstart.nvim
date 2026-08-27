@@ -16,7 +16,7 @@ return {
       verilator.args = {
         '--lint-only',
         '-F',
-        vim.fs.find('verilator.f', {
+        vim.fs.find('verilator.conf', {
           upward = true,
           stop = '/home',
           type = 'file',
